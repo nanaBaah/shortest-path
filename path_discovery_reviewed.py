@@ -20,9 +20,9 @@ available on PyPi.org. If you use additional packages, please add a requirements
 lists them with their precise versions ("packageA==1.2.3").
 """
 
-import heapq
 from functools import total_ordering
 from typing import Any, List, Optional, Set, Tuple, cast
+import heapq
 
 
 class Node:
@@ -175,71 +175,64 @@ def compute_shortest_paths(
     adjacent_lengths[start.id] = 0
 
     visited_nodes: list = []
-    node_path: list[Node] = []
+    node_paths: list[Node] = []
     all_routes: list = []
 
     def shortest_path(begin: Node,
                       current_node_id: int,
                       destination_node_id: int,
-                      visited: list,
-                      current_node_route: list[Node],
-                      start_to_end_route: list,
-                      adj_len: dict):
+                      visited_node_lists: list,
+                      current_node_routes: list[Node],
+                      start_to_end_routes: list,
+                      adjacent_lens: dict):
 
         current_node: Node = graph.nodes_by_id[current_node_id]
 
-        visited.append(current_node.id)
-        current_node_route.append(current_node)
+        visited_node_lists.append(current_node.id)
+        current_node_routes.append(current_node)
 
         if current_node_id == destination_node_id:
-            start_to_end_route.append((adj_len[current_node_id], [_.id for _ in current_node_route]))
+            start_to_end_routes.append((adjacent_lens[current_node_id], [_.id for _ in current_node_routes]))
 
         for edge in current_node.adjacent_edges:
-            adjacent_node: Node = edge.other_end(current_node)
+            current_adjacent_node: Node = edge.other_end(current_node)
 
-            if adjacent_node.id not in visited:
-                adj_len[adjacent_node.id] = adj_len[current_node.id] + edge.length
+            if current_adjacent_node.id not in visited_node_lists:
+                adjacent_lens[current_adjacent_node.id] = adjacent_lens[current_node.id] + edge.length
 
                 shortest_path(begin,
-                              adjacent_node.id,
+                              current_adjacent_node.id,
                               destination_node_id,
-                              visited,
-                              current_node_route,
-                              start_to_end_route,
-                              adj_len)
+                              visited_node_lists,
+                              current_node_routes,
+                              start_to_end_routes,
+                              adjacent_lens)
 
-        if (begin in current_node_route) and (end in current_node_route):
-            extracted_path: list = [_.id for _ in current_node_route]
+        if (begin in current_node_routes) and (end in current_node_routes):
+            extracted_path: list = [_.id for _ in current_node_routes]
 
             total_len: float = 0
 
-            for idx, value in enumerate(current_node_route):
-                if idx < len(current_node_route) - 1:
-                    connected_pair_nodes = UndirectedPath([value, current_node_route[idx + 1]]).length
+            for idx, value in enumerate(current_node_routes):
+                if idx < len(current_node_routes) - 1:
+                    connected_pair_nodes = UndirectedPath([value, current_node_routes[idx + 1]]).length
                     total_len += connected_pair_nodes
 
             possible_route = (total_len, extracted_path)
 
-            if possible_route not in start_to_end_route:
-                start_to_end_route.append((total_len, extracted_path))
+            if possible_route not in start_to_end_routes:
+                start_to_end_routes.append((total_len, extracted_path))
 
-        current_node_route.pop()
-        visited.pop()
+        current_node_routes.pop()
+        visited_node_lists.pop()
 
-    shortest_path(start, start.id, end.id, visited_nodes, node_path, all_routes, adjacent_lengths)
+    shortest_path(start, start.id, end.id, visited_nodes, node_paths, all_routes, adjacent_lengths)
 
-    if not node_path:
-        final_route = extend_route(all_routes, graph, length_tolerance_factor)
-        heapq.heapify(final_route)
+    if not node_paths:
+        final_routes = extend_route(all_routes, graph, length_tolerance_factor)
+        heapq.heapify(final_routes)
 
-        # expected output:
-        # final_output = []
-        # for (_, x) in final_route:
-        #     final_output.append(UndirectedPath([graph.nodes_by_id[i] for i in x]))
-
-        # return set(final_output)
-
-        route_sets = [route_set for (weight, route_set) in final_route]
+        route_sets = [route_set for (weight, route_set) in final_routes]
 
         return route_sets
 
